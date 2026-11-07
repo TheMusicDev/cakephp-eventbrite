@@ -15,9 +15,9 @@ jobs:
         image: mariadb:11.8
         env:
           MYSQL_DATABASE: eventbrite_test
-          MYSQL_USER: contact
-          MYSQL_PASSWORD: contact
-          MYSQL_ROOT_PASSWORD: contact
+          MYSQL_USER: eventbrite
+          MYSQL_PASSWORD: eventbrite
+          MYSQL_ROOT_PASSWORD: eventbrite
         ports:
           - 3312:3306
         options: >-
