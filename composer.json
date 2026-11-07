@@ -1,0 +1,74 @@
+{
+    "name": "themusicdev/cakephp-eventbrite",
+    "description": "CakePHP 5 plugin for Eventbrite: OAuth connections with encrypted token storage, webhook intake and a per-token API client",
+    "type": "cakephp-plugin",
+    "keywords": [
+        "cakephp",
+        "plugin",
+        "eventbrite",
+        "oauth",
+        "webhooks",
+        "tickets",
+        "events"
+    ],
+    "homepage": "https://github.com/TheMusicDev/cakephp-eventbrite",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "TheMusicDev",
+            "homepage": "https://themusicdev.llc"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/TheMusicDev/cakephp-eventbrite/issues",
+        "source": "https://github.com/TheMusicDev/cakephp-eventbrite",
+        "security": "https://github.com/TheMusicDev/cakephp-eventbrite/security/advisories/new"
+    },
+    "require": {
+        "php": ">=8.2",
+        "cakephp/cakephp": "^5.2",
+        "themusicdev/eventbrite": "^0.2"
+    },
+    "require-dev": {
+        "cakephp/cakephp-codesniffer": "^5.3",
+        "cakephp/migrations": "^5.0",
+        "captainhook/captainhook": "^5.29",
+        "captainhook/plugin-composer": "^5.3",
+        "phpstan/phpstan": "^2",
+        "phpunit/phpunit": "^11.5.3 || ^12.1.3 || ^13.0",
+        "ramsey/conventional-commits": "^1.7"
+    },
+    "suggest": {
+        "cakephp/migrations": "Needed to create the connections table (bin/cake migrations migrate -p TheMusicDev/CakeEventbrite)"
+    },
+    "autoload": {
+        "psr-4": {
+            "TheMusicDev\\CakeEventbrite\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TheMusicDev\\CakeEventbrite\\Test\\": "tests/",
+            "TestApp\\": "tests/test_app/src/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@test",
+            "@cs-check",
+            "@stan"
+        ],
+        "cs-check": "phpcs --colors -p",
+        "cs-fix": "phpcbf --colors -p",
+        "stan": "phpstan analyse --no-progress --memory-limit=512M",
+        "test": "phpunit --colors=always"
+    },
+    "config": {
+        "allow-plugins": {
+            "captainhook/plugin-composer": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "cakephp/plugin-installer": true
+        },
+        "sort-packages": true
+    }
+}

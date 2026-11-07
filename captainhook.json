@@ -1,0 +1,24 @@
+{
+    "commit-msg": {
+        "enabled": true,
+        "actions": [
+            {
+                "action": "\\Ramsey\\CaptainHook\\ValidateConventionalCommit"
+            }
+        ]
+    },
+    "pre-commit": {
+        "enabled": true,
+        "actions": [
+            {
+                "action": "vendor/bin/phpcs"
+            },
+            {
+                "action": "vendor/bin/phpstan analyse --no-progress"
+            },
+            {
+                "action": "vendor/bin/phpunit"
+            }
+        ]
+    }
+}
