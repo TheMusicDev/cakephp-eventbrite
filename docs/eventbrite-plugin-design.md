@@ -43,9 +43,11 @@ everyone else's connection, which is why multi-connection storage is the base ca
 ### `EventbriteClientFactory`: the main seam
 
 - `forConnection(EventbriteConnection)`, `forToken(string)`, and `forPrivateToken()` for apps that skip OAuth.
-- Registered in the container. A shared client can't exist, because the client takes its token in the constructor.
+- The factory is stateless and small, so the plugin does not force container wiring; controllers and commands build one
+  where needed, and hosts are free to register it in their container.
 - Wires CakePHP's PSR implementations: `Cake\Http\Client` (PSR-18), `Cake\Http\RequestFactory` and `Cake\Http\StreamFactory`
-  (PSR-17), `Cache::pool()` (PSR-16) and `Log::engine()` (PSR-3).
+  (PSR-17), `Cache::pool()` (PSR-16) and `Log::engine()` (PSR-3). Config keys: `CakeEventbrite.cache` holds a PSR-16 cache
+  config *name* (null for no cache) and `CakeEventbrite.logger` a PSR-3 channel *name*.
 - **No retries outside the CLI.** The client's 429 backoff calls `sleep()`, up to 7 seconds in total, which would hold a web
   worker. In a webhook request a failure returns 502, and Eventbrite retries instead.
 - **No cache by default.** Responses contain attendee names and emails, and hosts should choose where those are stored.
@@ -98,7 +100,11 @@ idempotent, and organization-wide webhooks report `event_id: null`. Check-in act
 ### Commands
 
 `bin/cake eventbrite me|events|event|webhooks`, for operating and debugging a connection. They never print tokens. There is no
-sync command, because storage is app-side.
+sync command, because storage is app-side. All take `--owner=<key>` to operate on a stored connection instead of the
+configured private token.
+
+The spaces in the names are real: Cake's CommandRunner resolves multi-token names (`longestCommandName()`), so the plugin's
+`console()` hook registers four commands under one prefix without a `MultiCommand` dispatcher — Cake 5 has none.
 
 ### Config
 
@@ -110,7 +116,9 @@ would then silently destroy every stored token.
 
 `Security::encrypt()` with `CakeEventbrite.encryptionKey`, stored as base64 in a text column. Saving without a key throws. The
 entity hides `access_token` and `webhook_secret` from serialization and debug output. The OAuth state signing secret is derived
-from the same key with an HMAC, so hosts have one secret to manage.
+from the same key with an HMAC, so hosts have one secret to manage. Internally both the encryption key and the HMAC salt are
+32-byte derivations *of the host key* — token encryption depends only on the host key, never on `Security.salt`, and hosts
+may set a key of any length (Security::encrypt would demand exactly 32 bytes otherwise).
 
 ## Testing
 
@@ -129,5 +137,26 @@ Tests must cover:
 ## Open questions
 
 - Whether Eventbrite's token response includes anything worth storing beyond `access_token`. Check during the first live OAuth run.
+  (The full flow is still unexercised against a live app — no Eventbrite app registration with a public redirect URI yet; the
+  exchange path is integration-tested with mocked HTTP only. `/users/me/` was confirmed live through the plugin.)
 - Whether a webhook created with `event_id` really delivers only for that event. The API stores the scope, but delivery hasn't been
   observed. It needs real orders on two events.
+
+## Reality notes (build of 2026-11-06/07)
+
+Things the design text above glosses over, found during the build:
+
+- **`Migrations\AbstractMigration` no longer exists** in cakephp/migrations 5 — plugin migrations extend
+  `Migrations\BaseMigration`, and the migrator refuses the legacy class by scanning the file text.
+- **`ServerRequest::input()` is gone in Cake 5.4**; the webhook controller decodes the request body itself with
+  `json_decode((string)$request->getBody(), true)`.
+- **`Controller::redirect()` returns `?Response`**; the OAuth controller builds its redirect responses directly
+  (`Response::withLocation()`) so action signatures stay non-nullable.
+- **Token encryption derives its HMAC salt** (and the 32-byte key) from the host key rather than falling back to
+  `Security::getSalt()` — in a bare plugin test environment `Security.salt` is not even set, and this also makes
+  encryption independent of salt rotation (see Token encryption above).
+- **Integration-test sessions**: `session_id('cli')` from the test bootstrap gives every request the same PHP session id, so
+  the session-bound OAuth state is deterministic in tests (mint a state for `'cli'`, or a literal other visitor to prove
+  cross-session rejection).
+- **`bin/cake eventbrite <subcommand>` works through plain space-named registration** (see Commands).
+- PHPUnit 13 supports only attribute data providers (`#[DataProvider]`), no docblock annotations.
