@@ -1,0 +1,21 @@
+# Test database for the plugin's own test suite (MariaDB, like production; never sqlite).
+# Port 3312 and database `eventbrite_test` so it does not collide with an app's own `dbtest`
+# on 3307 or the siblings on 3308-3310.
+#   docker compose up -d --wait dbtest && composer test
+services:
+  dbtest:
+    image: mariadb:11.8
+    environment:
+      MYSQL_DATABASE: eventbrite_test
+      MYSQL_USER: eventbrite
+      MYSQL_PASSWORD: eventbrite
+      MYSQL_ROOT_PASSWORD: eventbrite
+    ports:
+      - "3312:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    tmpfs:
+      - /var/lib/mysql
